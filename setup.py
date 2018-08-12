@@ -27,6 +27,10 @@ class MetaWearClean(clean):
             for f in os.listdir(dest):
                 if (f.startswith("libmetawear.so")):
                     os.remove(os.path.join(dest, f))
+        elif (platform.system() == 'Darwin'):
+            for f in os.listdir(dest):
+                if (f.startswith("libmetawear.dylib")):
+                    os.remove(os.path.join(dest, f))
 
 class MetaWearBuild(build_py):
     @staticmethod
@@ -55,13 +59,19 @@ class MetaWearBuild(build_py):
                 raise RuntimeError("Failed to compile C++ SDK")
 
             MetaWearBuild._move(dist_dir, dest, 'libmetawear.so')
+        elif (platform.system() == 'Darwin'):
+            status = call(["make", "-C", "MetaWear-SDK-Cpp", "OPT_FLAGS=-Wno-strict-aliasing", "-j%d" % (cpu_count())], cwd=root, stderr=STDOUT)
+            if (status != 0):
+                raise RuntimeError("Failed to compile C++ SDK")
+
+            MetaWearBuild._move(dist_dir, dest, 'libmetawear.dylib')
         else:
             raise RuntimeError("MetaWear Python SDK not supported for '%s'" % platform.system())
 
         copy2(os.path.join(cpp_sdk, 'bindings', 'python', 'mbientlab', 'metawear', 'cbindings.py'), dest)
         build_py.run(self)
 
-so_pkg_data = ['libmetawear.so'] if platform.system() == 'Linux' else ['MetaWear.Win32.dll']
+so_pkg_data = ['libmetawear.so'] if platform.system() == 'Linux' else ['libmetawear.dylib'] if platform.system() == 'Darwin' else ['MetaWear.Win32.dll']
 setup(
     name='metawear',
     packages=['mbientlab', 'mbientlab.metawear'],
@@ -86,7 +96,7 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Operating System :: POSIX :: Linux',
+        'Operating System :: POSIX :: Linux :: Darwin',
         'Operating System :: Microsoft :: Windows :: Windows 10',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
