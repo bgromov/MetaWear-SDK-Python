@@ -1,4 +1,5 @@
-# usage: python multi_device [mac1] [mac2] ... [mac(n)]
+# usage: python stream_acc.py [mac1] [mac2] ... [mac(n)]
+from __future__ import print_function
 from mbientlab.metawear import MetaWear, libmetawear, parse_value
 from mbientlab.metawear.cbindings import *
 from time import sleep
@@ -28,9 +29,11 @@ for i in range(len(sys.argv) - 1):
     states.append(State(d))
 
 for s in states:
-    print("configuring device")
+    print("Configuring device")
     libmetawear.mbl_mw_settings_set_connection_parameters(s.device.board, 7.5, 7.5, 0, 6000)
-    libmetawear.mbl_mw_acc_set_odr(s.device.board, 25.0)
+    sleep(1.5)
+
+    libmetawear.mbl_mw_acc_set_odr(s.device.board, 100.0)
     libmetawear.mbl_mw_acc_set_range(s.device.board, 16.0)
     libmetawear.mbl_mw_acc_write_acceleration_config(s.device.board)
 
@@ -49,8 +52,6 @@ for s in states:
     signal = libmetawear.mbl_mw_acc_get_acceleration_data_signal(s.device.board)
     libmetawear.mbl_mw_datasignal_unsubscribe(signal)
     libmetawear.mbl_mw_debug_disconnect(s.device.board)
-
-sleep(1.0)
 
 print("Total Samples Received")
 for s in states:

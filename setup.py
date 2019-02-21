@@ -9,7 +9,7 @@ import os
 import platform
 import sys
 
-machine = "arm" if "arm" in platform.machine() else ("x64" if sys.maxsize > 2**32 else "x86")
+machine = os.environ['MACHINE'] if 'MACHINE' in os.environ else ("arm" if "arm" in platform.machine() else ("x64" if sys.maxsize > 2**32 else "x86"))
 root = os.path.dirname(os.path.abspath(__file__))
 dest = os.path.join("mbientlab", "metawear")
 
@@ -41,19 +41,20 @@ class MetaWearBuild(build_py):
 
     def run(self):        
         cpp_sdk = os.path.join(root, 'MetaWear-SDK-Cpp')
-        dist_dir = os.path.join(cpp_sdk, 'dist', 'release', 'lib', machine)
+        system = platform.system()
+        dist_dir = os.path.join(cpp_sdk, 'dist', 'release', 'lib', "Win32" if machine == "x86" and system == "Windows" else machine)
 
         if os.path.exists(os.path.join(root, '.git')):
             status = call(["git", "submodule", "update", "--init"], cwd=root, stderr=STDOUT)
             if (status != 0):
                 raise RuntimeError("Could not init git submodule")
 
-        if (platform.system() == 'Windows'):
+        if (system == 'Windows'):
             if (call(["MSBuild.exe", "MetaWear.Win32.vcxproj", "/p:Platform=%s" % machine, "/p:Configuration=Release"], cwd=cpp_sdk, stderr=STDOUT) != 0):
                 raise RuntimeError("Failed to compile MetaWear.dll")
 
             move(os.path.join(dist_dir, "MetaWear.Win32.dll"), dest)
-        elif (platform.system() == 'Linux'):
+        elif (system == 'Linux'):
             status = call(["make", "-C", "MetaWear-SDK-Cpp", "OPT_FLAGS=-Wno-strict-aliasing", "-j%d" % (cpu_count())], cwd=root, stderr=STDOUT)
             if (status != 0):
                 raise RuntimeError("Failed to compile C++ SDK")
@@ -75,7 +76,7 @@ so_pkg_data = ['libmetawear.so'] if platform.system() == 'Linux' else ['libmetaw
 setup(
     name='metawear',
     packages=['mbientlab', 'mbientlab.metawear'],
-    version='0.5.0',
+    version='0.7.0',
     description='Python bindings for the MetaWear C++ SDK by MbientLab',
     long_description=open(os.path.join(os.path.dirname(__file__), "README.rst")).read(),
     package_data={'mbientlab.metawear': so_pkg_data},
